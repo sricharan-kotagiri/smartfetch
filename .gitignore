@@ -1,8 +1,32 @@
+# v0 runtime files (should only exist in preview, not in git)
+__v0_runtime_loader.js
+__v0_devtools.tsx
+__v0_jsx-dev-runtime.ts
+instrumentation-client.js
+instrumentation-client.ts
+
+# Common ignores
 node_modules/
-build/
-dist/
-coverage/
+.next/
+.env
+.env*.local
 .DS_Store
-*.log
-.env*
-!.env.example
+
+# Documentation files with sensitive information
+COMPLETE_SETUP_GUIDE.md
+COPY_PASTE_COMMANDS.md
+DEPLOYMENT_GUIDE.md
+LOCAL_TESTING_GUIDE.md
+WORKING_LINKS_AND_NEXT_STEPS.md
+EVERYTHING_FIXED_SUMMARY.md
+TWILIO_WHATSAPP_SETUP.md
+TWILIO_CREDENTIALS_SETUP.md
+TWILIO_IMPLEMENTATION_SUMMARY.md
+TWILIO_QUICK_START.md
+TWILIO_README.md
+TWILIO_WHATSAPP_INTEGRATION.md
+WHATSAPP_OTP_COMPLETE.md
+WHATSAPP_OTP_QUICK_START.md
+WHATSAPP_OTP_READY.md
+WHATSAPP_OTP_SETUP.md
+READY_TO_TEST.md

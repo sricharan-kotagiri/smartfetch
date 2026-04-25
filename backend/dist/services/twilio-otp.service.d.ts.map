@@ -1,0 +1,1 @@
+{"version":3,"file":"twilio-otp.service.d.ts","sourceRoot":"","sources":["../../src/services/twilio-otp.service.ts"],"names":[],"mappings":"AA2EA;;GAEG;AACH,eAAO,MAAM,OAAO,GAAU,OAAO,MAAM,KAAG,OAAO,CAAC,IAAI,CA2BzD,CAAA;AAED;;GAEG;AACH,eAAO,MAAM,SAAS,GAAU,OAAO,MAAM,EAAE,KAAK,MAAM,KAAG,OAAO,CAAC,OAAO,CAiC3E,CAAA;AAED;;GAEG;AACH,eAAO,MAAM,YAAY,GAAU,OAAO,MAAM;;;;;;;;EA0B/C,CAAA"}
