@@ -189,7 +189,9 @@ export default function ShopSetupPage() {
 
         if (createShopkeeperError) {
           console.error('❌ [SHOP-SETUP] Shopkeeper creation error:', createShopkeeperError)
-          throw createShopkeeperError
+          setToast({ message: 'Failed to create shop profile: ' + (createShopkeeperError.message || createShopkeeperError.details || JSON.stringify(createShopkeeperError)), type: 'error' })
+          setIsLoading(false)
+          return
         }
 
         shopkeeperId = newShopkeeper.id
@@ -219,14 +221,16 @@ export default function ShopSetupPage() {
 
       if (shopError) {
         console.error('❌ [SHOP-SETUP] Shop creation error:', shopError)
-        throw shopError
+        setToast({ message: 'Failed to create shop: ' + (shopError.message || shopError.details || JSON.stringify(shopError)), type: 'error' })
+        setIsLoading(false)
+        return
       }
 
       console.log('✅ [SHOP-SETUP] Shop created successfully:', newShop.id)
       setToast({ message: 'Shop created successfully!', type: 'success' })
-      // Redirect immediately to shopkeeper dashboard
+      // Redirect after a short delay to let user see the success message
       console.log('🔀 [SHOP-SETUP] Redirecting to shopkeeper dashboard...')
-      navigate('/dashboard')
+      setTimeout(() => navigate('/dashboard'), 1200)
     } catch (error: any) {
       console.error('❌ [SHOP-SETUP] Error:', error)
       const errorMessage = error.message || error.details || 'Failed to create shop'

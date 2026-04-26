@@ -18,6 +18,9 @@ export default function ProductsPage() {
   const navigate = useNavigate()
   const [products, setProducts] = useState<Product[]>([])
   const [shopId, setShopId] = useState<string>('')
+  const [shopName, setShopName] = useState('')
+  const [ownerName, setOwnerName] = useState('')
+  const [shopExists, setShopExists] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editProduct, setEditProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
@@ -53,43 +56,60 @@ export default function ProductsPage() {
         return
       }
 
-      const userId = session.user.id
-
-      // Get shop directly using shopkeeper_id
-      const { data: shop, error: shopError } = await supabase
-        .from('shops')
-        .select('id, name, is_open')
-        .eq('shopkeeper_id', userId)
+      // STEP 1: Get shopkeeper row using user_id (auth user id)
+      const { data: sk, error: skErr } = await supabase
+        .from('shopkeepers')
+        .select('id, owner_name')
+        .eq('user_id', session.user.id)
         .maybeSingle()
 
-      if (shopError) {
-        console.error('Shop fetch error:', shopError)
+      if (skErr) {
+        console.error('Shopkeeper fetch error:', skErr)
         setLoading(false)
         return
       }
 
-      if (!shop || !shop.id) {
-        console.log('No shop found for user:', userId)
-        // Redirect to shop setup if no shop exists
-        navigate('/dashboard/shop')
+      if (!sk) {
+        console.log('No shopkeeper row for user:', session.user.id)
+        setShopExists(false)
+        setLoading(false)
         return
       }
 
-      console.log('Shop found:', shop.id, shop.name)
-      setShopId(shop.id)  // ← Store the real shop.id
+      setOwnerName(sk.owner_name || '')
 
-      // Now fetch products using the real shop.id
-      const { data: products, error: prodError } = await supabase
+      // STEP 2: Get shop using shopkeepers.id (NOT auth user id)
+      const { data: shop, error: shopErr } = await supabase
+        .from('shops')
+        .select('id, name')
+        .eq('shopkeeper_id', sk.id)
+        .maybeSingle()
+
+      if (shopErr) {
+        console.error('Shop fetch error:', shopErr)
+        setLoading(false)
+        return
+      }
+
+      if (!shop) {
+        console.log('No shop for shopkeeper:', sk.id)
+        setShopExists(false)
+        setLoading(false)
+        return
+      }
+
+      setShopId(shop.id)
+      setShopName(shop.name || '')
+      setShopExists(true)
+
+      // STEP 3: Get products for this shop
+      const { data: prods } = await supabase
         .from('products')
         .select('*')
         .eq('shop_id', shop.id)
         .order('created_at', { ascending: false })
 
-      if (prodError) {
-        console.error('Products fetch error:', prodError)
-      } else {
-        setProducts(products || [])
-      }
+      setProducts(prods || [])
 
     } catch (err: any) {
       console.error('Init error:', err)

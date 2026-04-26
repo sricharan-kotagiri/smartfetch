@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { Html5QrcodeScanner } from 'html5-qrcode'
 import { supabase } from '@/config/supabase'
 import DashboardLayout from '@/layouts/DashboardLayout'
 
@@ -26,29 +25,76 @@ export default function ScannerPage() {
   useEffect(() => {
     if (!scanning) return
 
-    const scanner = new Html5QrcodeScanner(
-      'qr-reader',
-      { fps: 10, qrbox: { width: 280, height: 280 } },
-      false
-    )
+    let scannerInstance: any = null
+    let isMounted = true
 
-    scanner.render(
-      async (decodedText) => {
-        try {
-          scanner.clear()
-          setScanning(false)
-          const orderData: ScannedOrder = JSON.parse(decodedText)
-          setScannedOrder(orderData)
-          setError('')
-        } catch {
-          setError('Invalid QR code. Please scan a valid SmartFetch receipt.')
+    const startScanner = async () => {
+      // Small delay to ensure DOM is ready
+      await new Promise(resolve => setTimeout(resolve, 100))
+
+      if (!isMounted) return
+
+      const element = document.getElementById('qr-reader')
+      if (!element) return
+
+      try {
+        const { Html5QrcodeScanner } = await import('html5-qrcode')
+
+        scannerInstance = new Html5QrcodeScanner(
+          'qr-reader',
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            rememberLastUsedCamera: false,
+            showTorchButtonIfSupported: false,
+            showZoomSliderIfSupported: false,
+            defaultZoomValueIfSupported: 1,
+          },
+          false
+        )
+
+        scannerInstance.render(
+          async (decodedText: string) => {
+            if (!isMounted) return
+            try {
+              // Stop scanner before processing
+              try {
+                await scannerInstance.clear()
+              } catch {}
+              scannerInstance = null
+
+              if (!isMounted) return
+              setScanning(false)
+
+              const orderData: ScannedOrder = JSON.parse(decodedText)
+              setScannedOrder(orderData)
+              setError('')
+            } catch {
+              if (isMounted) {
+                setError('Invalid QR code. Please scan a valid SmartFetch receipt.')
+              }
+            }
+          },
+          () => {} // ignore per-frame errors
+        )
+      } catch (err) {
+        console.error('Scanner init error:', err)
+        if (isMounted) {
+          setError('Failed to start camera. Please allow camera access.')
         }
-      },
-      () => {} // ignore scan errors
-    )
+      }
+    }
+
+    startScanner()
 
     return () => {
-      try { scanner.clear() } catch {}
+      isMounted = false
+      if (scannerInstance) {
+        try {
+          scannerInstance.clear().catch(() => {})
+        } catch {}
+        scannerInstance = null
+      }
     }
   }, [scanning])
 
@@ -67,7 +113,8 @@ export default function ScannerPage() {
     setScannedOrder(null)
     setSuccess(false)
     setError('')
-    setScanning(true)
+    // Small delay before restarting to let DOM settle
+    setTimeout(() => setScanning(true), 200)
   }
 
   return (
@@ -119,6 +166,53 @@ export default function ScannerPage() {
             marginBottom: '1.5rem'
           }}>
             <div id="qr-reader" style={{ width: '100%' }} />
+            <div style={{
+              borderTop: '1px solid rgba(255,255,255,0.08)',
+              marginTop: '16px', paddingTop: '16px',
+              textAlign: 'center'
+            }}>
+              <p style={{ color: '#6B7280', fontSize: '0.8rem', marginBottom: '10px' }}>
+                — or upload QR image —
+              </p>
+              <label style={{
+                display: 'inline-block',
+                padding: '8px 20px',
+                background: 'rgba(59,130,246,0.12)',
+                border: '1px solid rgba(59,130,246,0.25)',
+                borderRadius: '10px', color: '#60A5FA',
+                fontWeight: 600, fontSize: '0.82rem',
+                cursor: 'pointer', fontFamily: 'Inter, sans-serif'
+              }}>
+                📁 Upload QR Image
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+
+                    try {
+                      const { Html5Qrcode } = await import('html5-qrcode')
+                      const reader = new Html5Qrcode('qr-file-reader')
+                      const result = await reader.scanFile(file, true)
+                      reader.clear()
+
+                      const orderData: ScannedOrder = JSON.parse(result)
+                      setScannedOrder(orderData)
+                      setScanning(false)
+                      setError('')
+                    } catch (err) {
+                      console.error('File scan error:', err)
+                      setError('Could not read QR code from image. Try a clearer photo.')
+                    }
+
+                    // Reset input
+                    e.target.value = ''
+                  }}
+                />
+              </label>
+            </div>
             <p style={{
               color: '#94A3B8', textAlign: 'center',
               marginTop: '1rem', fontSize: '0.9rem'
@@ -280,6 +374,7 @@ export default function ScannerPage() {
           </div>
         )}
       </div>
+      <div id="qr-file-reader" style={{ display: 'none' }} />
     </DashboardLayout>
   )
 }
